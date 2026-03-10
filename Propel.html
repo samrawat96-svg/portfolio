@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Propel
+
+  </title>
+  <link href="https://fonts.googleapis.com/css2?family=Jaro&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ── LOADER OVERLAY ── */
+    #loader {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 9000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: none;
+    }
+
+    #logo-svg {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+
+    .flair {
+      position: fixed;
+      opacity: 0;
+      width: 48px; height: 48px;
+      pointer-events: none;
+      top: 0; left: 0;
+      z-index: 9100;
+    }
+
+    #cursor {
+      position: fixed;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #d4f040;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+      mix-blend-mode: screen;
+    }
+
+    /* ── PAGE (hidden until loader exits) ── */
+    #page {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    body { background: #0a0a0a; font-family: 'Jaro', sans-serif; }
+
+    /* BACK BUTTON */
+    .back-btn {
+      position: fixed;
+      top: 24px; left: 24px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px 10px 16px;
+      background: rgba(10,10,10,0.55);
+      backdrop-filter: blur(14px);
+      border: 1.5px solid rgba(255,255,255,0.15);
+      border-radius: 100px;
+      color: #f0ece4;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+      overflow: hidden;
+      font-family: 'Jaro', sans-serif;
+    }
+    .back-btn .fill {
+      position: absolute; inset: 0;
+      background: #c9ff47;
+      border-radius: 100px;
+      transform: scaleX(0);
+      transform-origin: left;
+      z-index: 0;
+    }
+    .back-btn svg, .back-btn span { position: relative; z-index: 1; }
+    .back-btn svg {
+      width: 15px; height: 15px;
+      stroke: currentColor; fill: none;
+      stroke-width: 2.2;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* NEXT BUTTON */
+    .next-btn {
+      position: fixed;
+      top: 24px; right: 24px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px 10px 22px;
+      background: rgba(10,10,10,0.55);
+      backdrop-filter: blur(14px);
+      border: 1.5px solid rgba(255,255,255,0.15);
+      border-radius: 100px;
+      color: #f0ece4;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+      overflow: hidden;
+      font-family: 'Jaro', sans-serif;
+    }
+    .next-btn .fill {
+      position: absolute; inset: 0;
+      background: #c9ff47;
+      border-radius: 100px;
+      transform: scaleX(0);
+      transform-origin: right;
+      z-index: 0;
+    }
+    .next-btn svg, .next-btn span { position: relative; z-index: 1; }
+    .next-btn svg {
+      width: 15px; height: 15px;
+      stroke: currentColor; fill: none;
+      stroke-width: 2.2;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* IMAGES */
+    .gallery { display: block; width: 100vw; }
+    .gallery img {
+      display: block;
+      width: 100vw;
+      height: auto;
+      margin: 0; padding: 0;
+    }
+
+    /* IMAGE PROTECTION */
+    .gallery img {
+      -webkit-user-select: none;
+      user-select: none;
+      pointer-events: none;
+    }
+    .gallery {
+      position: relative;
+    }
+    .protect-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      user-select: none;
+    }
+
+    /* SCREENSHOT PROTECTION */
+    /* This hides content when screen is captured via print/screenshot APIs */
+    @media print {
+      body * { visibility: hidden !important; }
+      body::after {
+        content: '';
+        visibility: visible !important;
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: #000;
+        z-index: 99999;
+      }
+    }
+
+    /* CSS-only screenshot darkening on supported browsers */
+    .ss-shield {
+      position: fixed;
+      inset: 0;
+      z-index: 99998;
+      pointer-events: none;
+      background: transparent;
+    }
+
+    @media (display-mode: standalone) {
+      .ss-shield { background: #000; }
+    }
+
+
+    /* ══ SNIP TOOL / SCREEN CAPTURE PROTECTION ══
+       Two stacked layers with mix-blend-mode:
+       - base layer: black (visible on real screen as transparent due to blend)
+       - top layer:  white overlay with 'difference' blend
+       On a real display these cancel out = content visible.
+       In a screenshot/capture tool the blend is flattened = BLACK.
+    */
+    #capture-shield {
+      position: fixed;
+      inset: 0;
+      z-index: 999997;
+      pointer-events: none;
+      background: #000000;
+      mix-blend-mode: difference;
+      display: block;
+    }
+
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     LOADER
+══════════════════════════════════ -->
+<div id="capture-shield"></div>
+
+<div id="loader">
+
+  <div id="cursor"></div>
+
+  <!-- Flair shape defs -->
+  <svg style="display:none">
+    <defs>
+      <symbol id="s0" viewBox="0 0 48 48"><polygon points="24,4 29,18 44,18 32,27 37,42 24,33 11,42 16,27 4,18 19,18" fill="#d4f040"/></symbol>
+      <symbol id="s1" viewBox="0 0 48 48"><polygon points="24,4 44,24 24,44 4,24" fill="#d4f040"/></symbol>
+      <symbol id="s2" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#d4f040"/></symbol>
+      <symbol id="s3" viewBox="0 0 48 48"><polygon points="24,4 44,44 4,44" fill="#d4f040"/></symbol>
+      <symbol id="s4" viewBox="0 0 48 48"><rect x="20" y="4" width="8" height="40" fill="#d4f040"/><rect x="4" y="20" width="40" height="8" fill="#d4f040"/></symbol>
+      <symbol id="s5" viewBox="0 0 48 48"><polygon points="24,4 42,14 42,34 24,44 6,34 6,14" fill="#d4f040"/></symbol>
+      <symbol id="s6" viewBox="0 0 48 48"><polygon points="24,4 44,28 32,28 32,44 16,44 16,28 4,28" fill="#d4f040"/></symbol>
+      <symbol id="s7" viewBox="0 0 48 48">
+        <line x1="24" y1="4" x2="24" y2="44" stroke="#d4f040" stroke-width="5" stroke-linecap="round"/>
+        <line x1="4" y1="24" x2="44" y2="24" stroke="#d4f040" stroke-width="5" stroke-linecap="round"/>
+        <line x1="10" y1="10" x2="38" y2="38" stroke="#d4f040" stroke-width="5" stroke-linecap="round"/>
+        <line x1="38" y1="10" x2="10" y2="38" stroke="#d4f040" stroke-width="5" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="s8" viewBox="0 0 48 48"><rect x="6" y="6" width="36" height="36" rx="10" fill="#d4f040"/></symbol>
+    </defs>
+  </svg>
+
+  <!-- 18 flair elements -->
+  <svg class="flair" style="overflow:visible"><use href="#s0"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s1"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s2"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s3"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s4"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s5"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s6"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s7"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s8"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s0"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s1"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s2"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s3"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s4"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s5"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s6"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s7"/></svg>
+  <svg class="flair" style="overflow:visible"><use href="#s8"/></svg>
+
+  <!-- HIMANSHU logo -->
+  <svg id="logo-svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1920" height="1080" fill="#000" fill-opacity="0"/>
+    <g id="gA" fill="#d4f040">
+      <path d="M511.672 626C509.763 626 508.809 625.046 508.809 623.137V476.234C508.809 474.326 509.763 473.371 511.672 473.371H553.579C555.487 473.371 556.441 474.326 556.441 476.234V623.137C556.441 625.046 555.487 626 553.579 626H511.672Z"/>
+    </g>
+    <g id="gB" fill="#d4f040">
+      <path d="M578.082 626C576.173 626 575.219 625.046 575.219 623.137V476.234C575.219 474.326 576.173 473.371 578.082 473.371H619.989C621.897 473.371 622.851 474.326 622.851 476.234V623.137C622.851 625.046 621.897 626 619.989 626H578.082Z"/>
+      <path d="M635.332 626C633.423 626 632.469 625.046 632.469 623.137V476.234C632.469 474.326 633.423 473.371 635.332 473.371H677.239C679.147 473.371 680.101 474.326 680.101 476.234V623.137C680.101 625.046 679.147 626 677.239 626H635.332Z"/>
+      <path d="M692.582 626C690.673 626 689.719 625.046 689.719 623.137V502.683C689.719 500.928 690.33 499.401 691.551 498.103L714.451 475.203C715.749 473.982 717.275 473.371 719.031 473.371H744.221C746.053 473.371 747.58 473.982 748.801 475.203L768.152 494.554H773.419L792.769 475.203C793.99 473.982 795.517 473.371 797.349 473.371H822.539C824.295 473.371 825.821 473.982 827.119 475.203L850.019 498.103C851.24 499.401 851.851 500.928 851.851 502.683V623.137C851.851 625.046 850.897 626 848.989 626H807.082C805.173 626 804.219 625.046 804.219 623.137V528.675H794.601V623.137C794.601 625.046 793.647 626 791.739 626H749.832C747.923 626 746.969 625.046 746.969 623.137V528.675H737.351V623.137C737.351 625.046 736.397 626 734.489 626H692.582Z"/>
+      <path fill-rule="evenodd" d="M864.332 626C862.423 626 861.469 625.046 861.469 623.137V516.996C861.469 515.775 861.851 514.63 862.614 513.561L889.636 475.089C890.476 473.944 891.697 473.371 893.3 473.371H934.291C935.97 473.371 937.192 473.944 937.955 475.089L965.206 513.561C965.969 514.63 966.351 515.775 966.351 516.996V623.137C966.351 625.046 965.397 626 963.489 626H921.582C919.673 626 918.719 625.046 918.719 623.137V580.2H909.101V623.137C909.101 625.046 908.147 626 906.239 626H864.332ZM913.91 540.468C917.192 540.468 919.864 539.438 921.925 537.377C923.986 535.316 925.017 532.682 925.017 529.476C925.017 526.194 923.986 523.522 921.925 521.461C919.864 519.4 917.192 518.37 913.91 518.37C910.628 518.37 907.956 519.4 905.895 521.461C903.834 523.522 902.804 526.194 902.804 529.476C902.804 532.682 903.834 535.316 905.895 537.377C907.956 539.438 910.628 540.468 913.91 540.468Z"/>
+      <path d="M978.832 626C976.923 626 975.969 625.046 975.969 623.137V476.234C975.969 474.326 976.923 473.371 978.832 473.371H1051.54C1053.29 473.371 1054.82 473.982 1056.12 475.203L1079.02 498.103C1080.24 499.401 1080.85 500.928 1080.85 502.683V623.137C1080.85 625.046 1079.9 626 1077.99 626H1036.08C1034.17 626 1033.22 625.046 1033.22 623.137V519.171H1023.6V623.137C1023.6 625.046 1022.65 626 1020.74 626H978.832Z"/>
+      <path d="M1093.33 626C1091.42 626 1090.47 625.046 1090.47 623.137V590.848C1090.47 589.932 1090.51 589.207 1090.58 588.673C1090.74 588.062 1091.19 587.528 1091.96 587.07L1116.23 573.101V567.376L1092.3 554.781C1091.08 554.094 1090.47 552.949 1090.47 551.346V499.821C1090.47 498.6 1090.55 497.722 1090.7 497.188C1090.85 496.577 1091.38 495.928 1092.3 495.241L1122.53 474.86C1123.14 474.402 1123.79 474.058 1124.48 473.829C1125.16 473.524 1126.04 473.371 1127.11 473.371H1167.53C1169.44 473.371 1170.39 474.326 1170.39 476.234V510.126C1170.39 511.805 1169.82 512.95 1168.67 513.561L1138.67 526.728V532.682L1168.67 549.857C1169.82 550.392 1170.39 551.613 1170.39 553.521V603.329C1170.39 603.94 1170.28 604.588 1170.05 605.275C1169.89 605.886 1169.51 606.382 1168.9 606.764L1132.95 624.626C1132.49 624.931 1131.92 625.237 1131.23 625.542C1130.62 625.847 1130.01 626 1129.4 626H1093.33Z"/>
+      <path d="M1182.78 626C1180.88 626 1179.92 625.046 1179.92 623.137V476.234C1179.92 474.326 1180.88 473.371 1182.78 473.371H1224.69C1226.6 473.371 1227.55 474.326 1227.55 476.234V623.137C1227.55 625.046 1226.6 626 1224.69 626H1182.78Z"/>
+    </g>
+    <g id="gC" fill="#d4f040">
+      <path d="M1251.48 626C1249.58 626 1248.62 625.046 1248.62 623.137V476.234C1248.62 474.326 1249.58 473.371 1251.48 473.371H1293.39C1295.3 473.371 1296.25 474.326 1296.25 476.234V623.137C1296.25 625.046 1295.3 626 1293.39 626H1251.48Z"/>
+      <path d="M1335.18 626C1333.43 626 1331.9 625.351 1330.6 624.053L1307.7 601.153C1306.48 599.932 1305.87 598.405 1305.87 596.574V476.234C1305.87 474.326 1306.83 473.371 1308.73 473.371H1350.64C1352.55 473.371 1353.5 474.326 1353.5 476.234V575.391C1353.5 578.597 1355.11 580.2 1358.31 580.2H1363.12V476.234C1363.12 474.326 1364.08 473.371 1365.98 473.371H1407.89C1409.8 473.371 1410.75 474.326 1410.75 476.234V623.137C1410.75 625.046 1409.8 626 1407.89 626H1335.18Z"/>
+    </g>
+    <rect id="bar1" x="509" y="529" width="114" height="42" fill="#d4f040"/>
+    <rect id="bar2" x="1180" y="529" width="116" height="42" fill="#d4f040"/>
+  </svg>
+
+</div><!-- /loader -->
+
+<!-- ══════════════════════════════════
+     PAGE CONTENT
+══════════════════════════════════ -->
+<div id="page">
+
+  <a class="back-btn" id="backBtn" href="javascript:history.back()">
+    <div class="fill"></div>
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    <span>Back</span>
+  </a>
+
+  <a class="next-btn" id="nextBtn" href="pethub">
+    <div class="fill"></div>
+    <span>Next</span>
+    <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+  </a>
+
+  <div class="gallery">
+    <img src="propel (1).webp"    alt="Propel"/>
+    <img src="propel (2).webp"    alt="Propel"/>
+    <img src="propel (3).webp" alt="Propel"/>
+    <img src="propel (1).jpg"   alt="Propel"/>
+    
+  
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════
+// LOADER — logo animation
+// ══════════════════════════
+const E = "power4.inOut", DUR = 0.95, HOLD = 0.55;
+const gA = document.getElementById("gA");
+const gB = document.getElementById("gB");
+const gC = document.getElementById("gC");
+const bar1 = document.getElementById("bar1");
+const bar2 = document.getElementById("bar2");
+
+const logoLoop = gsap.timeline({ repeat: -1, defaults: { ease: E, duration: DUR } });
+logoLoop
+  .to(gA,   { x: -137 })
+  .to(gB,   { x: 137 }, "<").to(gC, { x: 137 }, "<")
+  .to(bar1, { attr: { x: 372, width: 387 } }, "<")
+  .to(bar2, { attr: { x: 1317 } }, "<")
+  .to({}, { duration: HOLD })
+  .to(gA,   { x: 0 })
+  .to(gB,   { x: 0 }, "<").to(gC, { x: 0 }, "<")
+  .to(bar1, { attr: { x: 509, width: 114 } }, "<")
+  .to(bar2, { attr: { x: 1180 } }, "<")
+  .to({}, { duration: HOLD })
+  .to(gA,   { x: -143 })
+  .to(gB,   { x: -143 }, "<").to(gC, { x: 144 }, "<")
+  .to(bar1, { attr: { x: 366 } }, "<")
+  .to(bar2, { attr: { x: 1037, width: 403 } }, "<")
+  .to({}, { duration: HOLD })
+  .to(gA,   { x: 0 })
+  .to(gB,   { x: 0 }, "<").to(gC, { x: 0 }, "<")
+  .to(bar1, { attr: { x: 509 } }, "<")
+  .to(bar2, { attr: { x: 1180, width: 116 } }, "<")
+  .to({}, { duration: HOLD });
+
+// ══════════════════════════
+// FLAIR mouse trail
+// ══════════════════════════
+const cursor = document.getElementById("cursor");
+const flair  = gsap.utils.toArray(".flair");
+const wrap   = gsap.utils.wrap(0, flair.length);
+const colors = ["#d4f040","#FFB347","#FF6B1A","#FFC869","#FF8C42","#ffffff","#FFDA79"];
+let idx = 0;
+let mousePos = { x: window.innerWidth/2, y: window.innerHeight/2 };
+let lastPos  = { ...mousePos };
+
+window.addEventListener("mousemove", e => {
+  mousePos = { x: e.clientX, y: e.clientY };
+  gsap.to(cursor, { left: e.clientX, top: e.clientY, duration: 0.1 });
+});
+
+function spawnFlair() {
+  const i   = wrap(idx);
+  const el  = flair[i];
+  const col = colors[idx % colors.length];
+  gsap.killTweensOf(el);
+  gsap.set(el, { clearProps: "all" });
+  gsap.set(el, { opacity:1, left: mousePos.x, top: mousePos.y, xPercent:-50, yPercent:-50 });
+  const sym = document.querySelector(el.querySelector("use").getAttribute("href"));
+  if (sym) sym.querySelectorAll("[fill]").forEach(n => n.setAttribute("fill", col));
+  gsap.timeline()
+    .from(el, { opacity:0, scale:0, ease:"elastic.out(1,0.3)", duration:0.6 })
+    .to(el,   { rotation:`random([-360,360])`, duration:0.6 }, "<")
+    .to(el,   { y:"110vh", ease:"back.in(0.4)", duration:1.1 }, 0);
+  idx++;
+}
+
+gsap.ticker.add(() => {
+  if (Math.hypot(lastPos.x - mousePos.x, lastPos.y - mousePos.y) > 90) {
+    spawnFlair();
+    lastPos = { ...mousePos };
+  }
+});
+
+// ══════════════════════════
+// EXIT LOADER when page ready
+// ══════════════════════════
+function exitLoader() {
+  logoLoop.pause();
+  const loader = document.getElementById("loader");
+  const page   = document.getElementById("page");
+
+  // stop cursor tracking on loader
+  gsap.ticker.remove(gsap.ticker.lagSmoothing);
+
+  gsap.timeline()
+    .to(loader, {
+      opacity: 0,
+      duration: 0.7,
+      ease: "power2.inOut",
+      onComplete: () => {
+        loader.style.display = "none";
+        document.body.style.cursor = "auto";
+        cursor.style.display = "none";
+      }
+    })
+    .to(page, {
+      opacity: 1,
+      duration: 0.6,
+      ease: "power2.out",
+      onStart: () => { page.style.pointerEvents = "all"; }
+    }, "-=0.2");
+}
+
+// Fire when all images + fonts loaded
+window.addEventListener("load", () => {
+  // minimum display time: 2s so the loader is always seen
+  const minTime = 2000;
+  const elapsed = performance.now();
+  const remaining = Math.max(0, minTime - elapsed);
+  setTimeout(exitLoader, remaining);
+});
+
+// ══════════════════════════
+// BACK BUTTON — GSAP hover
+// ══════════════════════════
+const btn  = document.getElementById("backBtn");
+const fill = btn.querySelector(".fill");
+const svg  = btn.querySelector("svg");
+const txt  = btn.querySelector("span");
+
+btn.addEventListener("mouseenter", () => {
+  gsap.to(fill, { scaleX:1, duration:0.35, ease:"power2.out" });
+  gsap.to([svg,txt], { color:"#0a0a0a", duration:0.2 });
+  gsap.to(svg, { x:-3, duration:0.3, ease:"power2.out" });
+});
+btn.addEventListener("mouseleave", () => {
+  gsap.to(fill, { scaleX:0, duration:0.3, ease:"power2.in" });
+  gsap.to([svg,txt], { color:"#f0ece4", duration:0.2 });
+  gsap.to(svg, { x:0, duration:0.3 });
+});
+btn.addEventListener("mousedown", () => gsap.to(btn, { scale:0.93, duration:0.1 }));
+btn.addEventListener("mouseup",   () => gsap.to(btn, { scale:1, duration:0.3, ease:"elastic.out(1,0.5)" }));
+
+// ══════════════════════════
+// NEXT BUTTON — GSAP hover
+// ══════════════════════════
+const nBtn  = document.getElementById("nextBtn");
+const nFill = nBtn.querySelector(".fill");
+const nSvg  = nBtn.querySelector("svg");
+const nTxt  = nBtn.querySelector("span");
+
+nBtn.addEventListener("mouseenter", () => {
+  gsap.to(nFill, { scaleX:1, duration:0.35, ease:"power2.out" });
+  gsap.to([nSvg,nTxt], { color:"#0a0a0a", duration:0.2 });
+  gsap.to(nSvg, { x:3, duration:0.3, ease:"power2.out" });
+});
+nBtn.addEventListener("mouseleave", () => {
+  gsap.to(nFill, { scaleX:0, duration:0.3, ease:"power2.in" });
+  gsap.to([nSvg,nTxt], { color:"#f0ece4", duration:0.2 });
+  gsap.to(nSvg, { x:0, duration:0.3 });
+});
+nBtn.addEventListener("mousedown", () => gsap.to(nBtn, { scale:0.93, duration:0.1 }));
+nBtn.addEventListener("mouseup",   () => gsap.to(nBtn, { scale:1, duration:0.3, ease:"elastic.out(1,0.5)" }));
+</script>
+
+<script>
+// ══════════════════════════
+// IMAGE PROTECTION
+// ══════════════════════════
+
+// Block right-click
+document.addEventListener("contextmenu", e => e.preventDefault());
+
+// Block drag
+document.addEventListener("dragstart", e => e.preventDefault());
+
+// Block common copy/save shortcuts
+document.addEventListener("keydown", e => {
+  const blocked = (
+    (e.ctrlKey || e.metaKey) && ["s","u","p","a","c"].includes(e.key.toLowerCase())
+  ) || e.key === "F12" || e.key === "PrintScreen";
+  if (blocked) e.preventDefault();
+});
+
+// Block inspect via key combo
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey && e.shiftKey && ["i","j","c"].includes(e.key.toLowerCase())) {
+    e.preventDefault();
+  }
+});
+
+// Transparent overlay on each image to block pointer events
+document.querySelectorAll(".gallery img").forEach(img => {
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "position:relative;display:block;line-height:0;";
+  img.parentNode.insertBefore(wrap, img);
+  wrap.appendChild(img);
+  const shield = document.createElement("div");
+  shield.style.cssText = "position:absolute;inset:0;z-index:10;cursor:default;";
+  shield.addEventListener("contextmenu", e => e.preventDefault());
+  shield.addEventListener("dragstart", e => e.preventDefault());
+  wrap.appendChild(shield);
+});
+</script>
+
+<script>
+// ══════════════════════════════════════════
+// SCREENSHOT DETECTION & SCREEN BLACK
+// ══════════════════════════════════════════
+
+const blackout = document.createElement("div");
+blackout.id = "blackout";
+blackout.style.cssText = `
+  position: fixed; inset: 0; background: #000;
+  z-index: 999999; display: none; pointer-events: none;
+`;
+document.body.appendChild(blackout);
+
+function showBlackout(ms = 1200) {
+  blackout.style.display = "block";
+  setTimeout(() => { blackout.style.display = "none"; }, ms);
+}
+
+// ── 1. visibilitychange — fires when screen recorder / screenshot tool
+//       briefly steals focus or locks the screen
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") showBlackout(1500);
+});
+
+// ── 2. window blur — screenshot tools on desktop briefly steal focus
+window.addEventListener("blur", () => showBlackout(1200));
+
+// ── 3. PrintScreen key (desktop)
+document.addEventListener("keyup", e => {
+  if (e.key === "PrintScreen" || e.code === "PrintScreen") {
+    // Overwrite clipboard with black image
+    showBlackout(1500);
+    // Attempt to clear clipboard
+    try {
+      navigator.clipboard.writeText("").catch(() => {});
+    } catch(e) {}
+  }
+});
+
+// ── 4. Screen Capture API detection (Chrome/Edge)
+//       When getDisplayMedia is called, the page gets blacked out
+if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+  const _orig = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
+  navigator.mediaDevices.getDisplayMedia = async function(opts) {
+    showBlackout(3000);
+    return _orig(opts);
+  };
+}
+
+// ── 5. Page visibility / focus for mobile screenshots
+//       On mobile, taking a screenshot briefly backgrounds the browser
+window.addEventListener("focusout", () => showBlackout(1000));
+window.addEventListener("pagehide", () => showBlackout(2000));
+
+// ── 6. CSS print media trick — black page on print/screenshot shortcut
+window.addEventListener("beforeprint", () => {
+  document.body.style.visibility = "hidden";
+  setTimeout(() => { document.body.style.visibility = ""; }, 2000);
+});
+window.addEventListener("afterprint",  () => {
+  document.body.style.visibility = "";
+});
+
+// ── 7. Periodic screen dim when window not focused (extra layer)
+let focusTimer;
+window.addEventListener("blur", () => {
+  focusTimer = setTimeout(() => showBlackout(800), 100);
+});
+window.addEventListener("focus", () => {
+  clearTimeout(focusTimer);
+  blackout.style.display = "none";
+});
+</script>
+
+</body>
+</html>

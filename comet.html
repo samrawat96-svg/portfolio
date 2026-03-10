@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>COMET — Shoes That Move You</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,300;0,400;0,600;1,300&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --black:    #04040A;
+    --deep:     #080818;
+    --blue:     #ff8c00;
+    --blue2:    #0768F8;
+    --white:    #F5F5F5;
+    --dim:      #8A8AA0;
+    --gold:     #FFD060;
+    --card-bg:  #0D0D22;
+    --border:   rgba(255,140,0,.15);
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Barlow', sans-serif;
+    font-weight: 300;
+    overflow-x: hidden;
+    cursor: none;
+  }
+  a { color: inherit; text-decoration: none; }
+  img { display: block; max-width: 100%; }
+
+  /* CURSOR */
+  #cursor {
+    width: 14px; height: 14px;
+    background: var(--blue); border-radius: 50%;
+    position: fixed; top: 0; left: 0;
+    pointer-events: none; z-index: 9999;
+    transform: translate(-50%,-50%);
+    transition: width .25s, height .25s, background .25s;
+    mix-blend-mode: screen;
+  }
+  #cursor-ring {
+    width: 40px; height: 40px;
+    border: 1px solid var(--blue); border-radius: 50%;
+    position: fixed; top: 0; left: 0;
+    pointer-events: none; z-index: 9998;
+    transform: translate(-50%,-50%);
+    transition: left .35s cubic-bezier(.23,1,.32,1), top .35s cubic-bezier(.23,1,.32,1), width .25s, height .25s;
+    opacity: .5;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: var(--black); }
+  ::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 2px; }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.4rem 3.5rem;
+    transition: background .4s, padding .4s;
+  }
+  nav.scrolled {
+    background: rgba(4,4,10,.88);
+    backdrop-filter: blur(18px);
+    padding: 1rem 3.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.6rem,2.5vw,2.2rem);
+    letter-spacing: .12em;
+  }
+  .nav-logo span { color: var(--blue); }
+  .nav-links { display: flex; gap: 2.8rem; list-style: none; }
+  .nav-links a {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .85rem; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--dim); transition: color .25s; position: relative;
+  }
+  .nav-links a::after {
+    content: ''; position: absolute; bottom: -4px; left: 0;
+    width: 0; height: 1px; background: var(--blue); transition: width .3s;
+  }
+  .nav-links a:hover { color: var(--white); }
+  .nav-links a:hover::after { width: 100%; }
+  .nav-right { display: flex; align-items: center; gap: 1.8rem; }
+  .nav-icon {
+    font-size: .85rem; letter-spacing: .14em;
+    font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase;
+    color: var(--dim); transition: color .25s; cursor: none;
+  }
+  .nav-icon:hover { color: var(--blue); }
+  .cart-btn {
+    background: var(--blue); color: var(--black);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .8rem; letter-spacing: .18em; text-transform: uppercase;
+    padding: .5rem 1.2rem; border-radius: 2px;
+    transition: background .25s, transform .2s;
+  }
+  .cart-btn:hover { background: var(--white); transform: translateY(-1px); }
+  .hamburger {
+    display: none; flex-direction: column; gap: 5px;
+    cursor: none; background: none; border: none; padding: 4px;
+  }
+  .hamburger span {
+    display: block; width: 26px; height: 1.5px;
+    background: var(--white); transition: transform .3s, opacity .3s;
+  }
+
+  /* MOBILE MENU */
+  .mobile-menu {
+    position: fixed; inset: 0; background: var(--black); z-index: 999;
+    flex-direction: column; align-items: center; justify-content: center; gap: 2.5rem;
+    opacity: 0; pointer-events: none; transition: opacity .4s; display: none;
+  }
+  .mobile-menu.open { opacity: 1; pointer-events: all; display: flex; }
+  .mobile-menu a {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem,8vw,4rem); letter-spacing: .08em; color: var(--dim); transition: color .25s;
+  }
+  .mobile-menu a:hover { color: var(--blue); }
+
+  /* HERO */
+  .hero {
+    position: relative; width: 100%; height: 100svh; min-height: 600px;
+    overflow: hidden; display: flex; align-items: flex-end;
+  }
+  .hero-video {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; z-index: 0;
+  }
+  .hero-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(4,4,10,.25) 0%, transparent 40%, rgba(4,4,10,.85) 100%);
+    z-index: 1;
+  }
+  .hero-overlay::after {
+    content: ''; position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.05) 2px, rgba(0,0,0,.05) 4px);
+    pointer-events: none;
+  }
+  .hero-content {
+    position: relative; z-index: 2; width: 100%;
+    padding: 0 3.5rem 5rem;
+    display: flex; flex-direction: column; gap: 1.2rem;
+  }
+  .hero-eyebrow {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .8rem; letter-spacing: .35em; text-transform: uppercase; color: var(--blue);
+    display: flex; align-items: center; gap: .8rem;
+  }
+  .hero-eyebrow::before { content: ''; display: inline-block; width: 30px; height: 1px; background: var(--blue); }
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(4rem,11vw,10rem); line-height: .92; letter-spacing: -.01em;
+  }
+  .hero-title em {
+    font-style: italic; color: transparent;
+    -webkit-text-stroke: 1.5px var(--white);
+  }
+  .hero-sub { font-size: clamp(.85rem,1.2vw,1rem); color: rgba(245,245,245,.6); max-width: 340px; line-height: 1.7; }
+  .hero-cta-row { display: flex; align-items: center; gap: 2rem; margin-top: .5rem; }
+  .btn-primary {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .9rem; letter-spacing: .2em; text-transform: uppercase;
+    background: var(--blue); color: var(--black);
+    padding: .9rem 2.4rem; border-radius: 2px;
+    position: relative; overflow: hidden; transition: color .3s; display: inline-block;
+  }
+  .btn-primary::before {
+    content: ''; position: absolute; inset: 0; background: var(--white);
+    transform: translateX(-101%); transition: transform .35s cubic-bezier(.4,0,.2,1);
+  }
+  .btn-primary:hover::before { transform: translateX(0); }
+  .btn-primary span { position: relative; z-index: 1; }
+  .btn-ghost {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .85rem; letter-spacing: .18em; text-transform: uppercase;
+    color: rgba(245,245,245,.6); display: flex; align-items: center; gap: .5rem; transition: color .25s;
+  }
+  .btn-ghost:hover { color: var(--white); }
+  .btn-ghost .arrow { transition: transform .25s; }
+  .btn-ghost:hover .arrow { transform: translateX(5px); }
+  .scroll-hint {
+    position: absolute; bottom: 2rem; right: 3.5rem; z-index: 2;
+    display: flex; align-items: center; gap: .7rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .7rem; letter-spacing: .2em; text-transform: uppercase; color: rgba(245,245,245,.4);
+    writing-mode: vertical-rl; transform: rotate(180deg);
+  }
+  .scroll-line {
+    width: 1px; height: 50px;
+    background: linear-gradient(to bottom, transparent, var(--blue));
+    animation: scrollLine 1.8s ease-in-out infinite;
+  }
+  @keyframes scrollLine { 0%{height:0;opacity:0} 30%{opacity:1} 100%{height:50px;opacity:0} }
+
+  /* MARQUEE */
+  .marquee-wrap { overflow: hidden; background: var(--blue); padding: .7rem 0; }
+  .marquee-track { display: flex; animation: marquee 22s linear infinite; will-change: transform; }
+  .marquee-track:hover { animation-play-state: paused; }
+  .marquee-item {
+    flex-shrink: 0; display: flex; align-items: center; gap: 1.5rem;
+    padding: 0 2rem; font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem; letter-spacing: .1em; color: var(--black); white-space: nowrap;
+  }
+  .marquee-dot { width: 5px; height: 5px; background: var(--black); border-radius: 50%; }
+  @keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+  /* SECTION HEADER */
+  .section-header {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 0 3.5rem; margin-bottom: 3rem;
+  }
+  .section-eyebrow {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .75rem; letter-spacing: .3em; text-transform: uppercase; color: var(--blue); margin-bottom: .4rem;
+  }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.8rem,5vw,5rem); letter-spacing: .02em; line-height: 1;
+  }
+  .section-link {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .8rem; letter-spacing: .2em; text-transform: uppercase; color: var(--dim);
+    border-bottom: 1px solid var(--border); padding-bottom: .2rem;
+    transition: color .25s, border-color .25s; white-space: nowrap;
+  }
+  .section-link:hover { color: var(--blue); border-color: var(--blue); }
+
+  /* NEW ARRIVALS */
+  .arrivals { padding: 7rem 0 5rem; }
+  .products-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1.5px; padding: 0 3.5rem; }
+  .product-card { background: var(--card-bg); overflow: hidden; position: relative; cursor: none;
+    transform: translateY(40px); opacity: 0;
+    transition: transform .7s cubic-bezier(.22,1,.36,1), opacity .7s;
+  }
+  .product-card.visible { transform: translateY(0); opacity: 1; }
+  .product-img-wrap { position: relative; overflow: hidden; aspect-ratio: 3/4; background: #0a0a1a; }
+  .product-img {
+    width:100%; height:100%; object-fit:cover;
+    transition: transform .6s cubic-bezier(.23,1,.32,1);
+    transform: rotate(-8deg) scale(1.1);
+  }
+  .product-card:hover .product-img { transform: scale(1.18) rotate(-14deg); }
+  .product-placeholder {
+    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    font-size: 5rem; opacity: .25;
+    background: linear-gradient(135deg,#0d0d22,#141430);
+  }
+  .product-badge {
+    position: absolute; top: 1rem; left: 1rem;
+    background: var(--blue); color: var(--black);
+    font-family: 'Barlow Condensed', sans-serif; font-size: .65rem; letter-spacing: .18em; text-transform: uppercase;
+    padding: .25rem .6rem; border-radius: 1px;
+  }
+  .product-info { padding: 1.2rem 1.4rem 1.6rem; display: flex; align-items: center; justify-content: space-between; }
+  .product-name { font-family:'Barlow Condensed',sans-serif; font-size:1rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+  .product-sub { font-size:.78rem; color:var(--dim); letter-spacing:.05em; margin-top:.15rem; }
+  .price-new { font-family:'Barlow Condensed',sans-serif; font-size:1rem; font-weight:700; color:var(--blue); }
+  .price-old { font-size:.75rem; color:var(--dim); text-decoration:line-through; }
+  .product-hover-cta {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: var(--blue); color: var(--black);
+    font-family: 'Barlow Condensed', sans-serif; font-size: .8rem; letter-spacing: .18em; text-transform: uppercase;
+    text-align: center; padding: .9rem;
+    transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
+  }
+  .product-card:hover .product-hover-cta { transform: translateY(0); }
+
+  /* CATEGORIES */
+  .categories { padding: 5rem 0 7rem; }
+  .cat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 2px; padding: 0 3.5rem; }
+  .cat-card {
+    position: relative; overflow: hidden; aspect-ratio: 4/5; cursor: none;
+    transform: scale(.96); opacity: 0; transition: transform .8s cubic-bezier(.22,1,.36,1), opacity .8s;
+  }
+  .cat-card.visible { transform: scale(1); opacity: 1; }
+  .cat-bg { width:100%; height:100%; object-fit:cover; transition:transform .6s cubic-bezier(.23,1,.32,1); }
+  .cat-card:hover .cat-bg { transform: scale(1.1) rotate(2deg); }
+  .cat-placeholder {
+    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    font-size:6rem; opacity:.2;
+  }
+  .cat-overlay { position:absolute; inset:0; background:linear-gradient(to top, rgba(4,4,10,.8) 0%, transparent 60%); }
+  .cat-name {
+    position: absolute; bottom: 0; left: 0; right: 0; padding: 1.5rem 1.6rem;
+    font-family: 'Bebas Neue', sans-serif; font-size: clamp(1.4rem,2vw,2.2rem); letter-spacing: .08em;
+  }
+  .cat-cta { font-family:'Barlow Condensed',sans-serif; font-size:.7rem; letter-spacing:.2em; text-transform:uppercase; color:var(--blue); display:block; margin-top:.15rem; }
+
+  /* CAMPAIGN */
+  .campaign { position:relative; height:90vh; min-height:550px; overflow:hidden; display:flex; align-items:flex-end; }
+  .campaign-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; }
+  .campaign-overlay {
+    position:absolute; inset:0; z-index:1;
+    background: linear-gradient(to right, rgba(4,4,10,.75) 0%, rgba(4,4,10,.2) 60%, transparent 100%);
+  }
+  .campaign-content { position:relative; z-index:2; padding:0 3.5rem 5rem; }
+  .campaign-label {
+    font-family:'Barlow Condensed',sans-serif; font-size:.75rem; letter-spacing:.3em; text-transform:uppercase; color:var(--blue); margin-bottom:.8rem;
+    display:flex; align-items:center; gap:.8rem;
+  }
+  .campaign-label::before { content:''; display:inline-block; width:30px; height:1px; background:var(--blue); }
+  .campaign-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(3rem,7vw,7rem); line-height:.95; max-width:600px; margin-bottom:1.5rem; }
+  .campaign-title em { color:transparent; -webkit-text-stroke:1.5px rgba(245,245,245,.5); font-style:italic; }
+
+  /* MARQUEE DARK */
+  .marquee-dark { background:var(--deep); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  .marquee-dark .marquee-item { color:var(--dim); font-size:.95rem; }
+  .marquee-dark .marquee-dot { background:var(--blue); opacity:.4; }
+
+  /* FEATURED */
+  .featured { padding: 7rem 0; background: var(--deep); }
+  .featured-grid { display:grid; grid-template-columns:1fr 1fr; gap:2px; padding:0 3.5rem; margin-top:3rem; }
+  .featured-item {
+    position:relative; overflow:hidden; aspect-ratio:4/5; cursor:none;
+    transform:translateX(-30px); opacity:0; transition:transform .8s cubic-bezier(.22,1,.36,1), opacity .8s;
+  }
+  .featured-item:nth-child(2) { transform:translateX(30px); transition-delay:.15s; }
+  .featured-item.visible { transform:translateX(0); opacity:1; }
+  .featured-img { width:100%; height:100%; object-fit:cover; transition:transform .7s cubic-bezier(.4,0,.2,1); }
+  .featured-item:hover .featured-img { transform:scale(1.05); }
+  .featured-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:8rem; opacity:.12; background:linear-gradient(135deg,#0a0a1a,#141430); }
+  .featured-overlay { position:absolute; inset:0; background:linear-gradient(to top, rgba(4,4,10,.9) 0%, transparent 50%); }
+  .featured-info { position:absolute; bottom:0; left:0; right:0; padding:2.5rem; }
+  .featured-tag { font-family:'Barlow Condensed',sans-serif; font-size:.7rem; letter-spacing:.3em; text-transform:uppercase; color:var(--blue); margin-bottom:.3rem; }
+  .featured-name { font-family:'Bebas Neue',sans-serif; font-size:clamp(1.8rem,3vw,3.2rem); line-height:1; margin-bottom:.2rem; }
+  .featured-price { font-family:'Barlow Condensed',sans-serif; font-size:1rem; color:var(--gold); letter-spacing:.06em; margin-bottom:1rem; }
+
+  /* STATS */
+  .stats { padding:5rem 3.5rem; display:grid; grid-template-columns:repeat(4,1fr); gap:2px; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  .stat-item {
+    text-align:center; padding:2.5rem 1rem; border-right:1px solid var(--border);
+    transform:translateY(25px); opacity:0; transition:transform .7s, opacity .7s;
+  }
+  .stat-item:last-child { border-right:none; }
+  .stat-item.visible { transform:translateY(0); opacity:1; }
+  .stat-num { font-family:'Bebas Neue',sans-serif; font-size:clamp(2.5rem,4vw,4.5rem); color:var(--blue); line-height:1; }
+  .stat-label { font-size:.78rem; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin-top:.4rem; }
+
+  /* TESTIMONIALS */
+  .testimonials { padding:7rem 3.5rem; }
+  .testi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.5px; }
+  .testi-card {
+    background:var(--card-bg); padding:2.5rem; border:1px solid var(--border);
+    transform:translateY(30px); opacity:0; transition:transform .7s, opacity .7s;
+  }
+  .testi-card.visible { transform:translateY(0); opacity:1; }
+  .testi-stars { color:var(--gold); font-size:1rem; letter-spacing:.1em; margin-bottom:1.2rem; }
+  .testi-text { font-size:.9rem; line-height:1.75; color:rgba(245,245,245,.65); margin-bottom:1.5rem; font-style:italic; }
+  .testi-author { font-family:'Barlow Condensed',sans-serif; font-size:.8rem; letter-spacing:.18em; text-transform:uppercase; color:var(--blue); }
+
+  /* NEWSLETTER */
+  .newsletter {
+    padding:7rem 3.5rem; text-align:center;
+    background:linear-gradient(135deg, var(--blue2) 0%, var(--blue) 100%);
+    position:relative; overflow:hidden;
+  }
+  .newsletter::before {
+    content:'COMET'; position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Bebas Neue',sans-serif; font-size:30vw; line-height:1;
+    color:rgba(0,0,0,.08); pointer-events:none; letter-spacing:-.02em;
+  }
+  .newsletter-inner { position:relative; z-index:1; }
+  .newsletter h2 { font-family:'Bebas Neue',sans-serif; font-size:clamp(2.5rem,5vw,5rem); color:var(--black); line-height:.95; margin-bottom:.6rem; }
+  .newsletter p { color:rgba(4,4,10,.6); font-size:.9rem; margin-bottom:2.5rem; }
+  .newsletter-form { display:flex; max-width:480px; margin:0 auto; background:rgba(4,4,10,.15); border:1px solid rgba(4,4,10,.2); border-radius:2px; overflow:hidden; }
+  .newsletter-input { flex:1; padding:1rem 1.4rem; background:transparent; border:none; outline:none; color:var(--black); font-family:'Barlow',sans-serif; font-size:.9rem; }
+  .newsletter-input::placeholder { color:rgba(4,4,10,.45); }
+  .newsletter-submit { padding:1rem 1.8rem; background:var(--black); color:var(--blue); border:none; cursor:none; font-family:'Barlow Condensed',sans-serif; font-size:.8rem; letter-spacing:.18em; text-transform:uppercase; transition:background .25s; }
+  .newsletter-submit:hover { background:var(--deep); }
+
+  /* FOOTER */
+  footer { background:var(--deep); border-top:1px solid var(--border); padding:5rem 3.5rem 2rem; }
+  .footer-top { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:4rem; margin-bottom:4rem; }
+  .footer-brand .nav-logo { font-size:2rem; margin-bottom:1rem; }
+  .footer-brand p { font-size:.85rem; color:var(--dim); line-height:1.75; max-width:240px; }
+  .footer-col h4 { font-family:'Barlow Condensed',sans-serif; font-size:.75rem; letter-spacing:.25em; text-transform:uppercase; color:var(--white); margin-bottom:1.4rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.7rem; }
+  .footer-col li a { font-size:.82rem; color:var(--dim); transition:color .25s; }
+  .footer-col li a:hover { color:var(--blue); }
+  .footer-bottom { border-top:1px solid var(--border); padding-top:1.8rem; display:flex; align-items:center; justify-content:space-between; font-size:.75rem; color:var(--dim); letter-spacing:.05em; }
+  .footer-socials { display:flex; gap:1.5rem; }
+  .footer-socials a { font-family:'Barlow Condensed',sans-serif; font-size:.7rem; letter-spacing:.18em; text-transform:uppercase; color:var(--dim); transition:color .25s; }
+  .footer-socials a:hover { color:var(--blue); }
+
+  /* LOADER */
+  #loader { position:fixed; inset:0; background:var(--black); z-index:9999; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:1.5rem; transition:opacity .6s, visibility .6s; }
+  #loader.hidden { opacity:0; visibility:hidden; }
+  .loader-logo { font-family:'Bebas Neue',sans-serif; font-size:3.5rem; letter-spacing:.15em; animation:pulse .9s ease-in-out infinite; }
+  .loader-logo span { color:var(--blue); }
+  .loader-bar-wrap { width:180px; height:1px; background:rgba(245,245,245,.1); overflow:hidden; }
+  .loader-bar { height:100%; background:var(--blue); animation:loadBar 1.8s cubic-bezier(.4,0,.2,1) forwards; }
+  @keyframes loadBar { from{width:0} to{width:100%} }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* RESPONSIVE */
+  @media (max-width: 1100px) {
+    .products-grid { grid-template-columns: repeat(2,1fr); }
+    .footer-top { grid-template-columns: 1fr 1fr; gap:2.5rem; }
+    .stats { grid-template-columns: repeat(2,1fr); }
+  }
+  @media (max-width: 900px) {
+    nav { padding:1.2rem 1.8rem; }
+    nav.scrolled { padding:1rem 1.8rem; }
+    .nav-links { display:none; }
+    .hamburger { display:flex; }
+    .nav-right .cart-btn { display:none; }
+    .hero-content { padding:0 1.8rem 4rem; }
+    .scroll-hint { right:1.8rem; }
+    .section-header { padding:0 1.8rem; }
+    .products-grid { padding:0 1.8rem; gap:2px; }
+    .cat-grid { grid-template-columns:repeat(2,1fr); padding:0 1.8rem; }
+    .campaign-content { padding:0 1.8rem 4rem; }
+    .featured-grid { padding:0 1.8rem; }
+    .testi-grid { grid-template-columns:1fr; }
+    .testimonials { padding:5rem 1.8rem; }
+    .stats { padding:3rem 1.8rem; }
+    footer { padding:4rem 1.8rem 1.5rem; }
+    .footer-top { grid-template-columns:1fr; gap:2rem; }
+    .footer-bottom { flex-direction:column; gap:1rem; text-align:center; }
+    .newsletter { padding:5rem 1.8rem; }
+  }
+  @media (max-width: 600px) {
+    .products-grid { grid-template-columns:1fr; }
+    .cat-grid { grid-template-columns:1fr; }
+    .featured-grid { grid-template-columns:1fr; }
+    .stats { grid-template-columns:repeat(2,1fr); padding:2rem 1rem; }
+    .newsletter-form { flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-logo">COMET<span>.</span></div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+</div>
+
+<!-- CURSOR -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- NAV -->
+<nav id="navbar">
+  <a href="#" class="nav-logo">COMET<span>.</span></a>
+  <ul class="nav-links">
+    <li><a href="#arrivals">New Arrivals</a></li>
+    <li><a href="#categories">Shop</a></li>
+    <li><a href="#campaign">Campaign</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="#" class="nav-icon">Search</a>
+    <a href="#" class="nav-icon">Account</a>
+    <a href="#" class="cart-btn">Bag (0)</a>
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#arrivals" class="mob-link">New Arrivals</a>
+  <a href="#categories" class="mob-link">Shop</a>
+  <a href="#campaign" class="mob-link">Campaign</a>
+  <a href="#about" class="mob-link">About</a>
+  <a href="#contact" class="mob-link">Contact</a>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <!--
+    VIDEO NOTE: Place your video files (SHOES.mp4 & Untitled_design.mp4) in the
+    same folder as this HTML file, or update the src paths below.
+  -->
+  <video class="hero-video" autoplay muted loop playsinline poster="">
+    <source src="Shoesbanner.mp4" type="video/mp4"/>
+    <source src="Untitled_design.mp4" type="video/mp4"/>
+  </video>
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">SS 2025 Collection</div>
+    <h1 class="hero-title">Move<br/><em>Beyond</em><br/>Gravity</h1>
+    <p class="hero-sub">Crafted for those who leave marks wherever they walk. Performance meets artistry.</p>
+    <div class="hero-cta-row">
+      <a href="#arrivals" class="btn-primary"><span>Explore Collection</span></a>
+      <a href="#campaign" class="btn-ghost">Watch Film <span class="arrow">→</span></a>
+    </div>
+  </div>
+  <div class="scroll-hint"><div class="scroll-line"></div>Scroll</div>
+</section>
+
+<!-- MARQUEE BLUE -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <div class="marquee-item">New Collection <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Comet Shoes <span class="marquee-dot"></span></div>
+    <div class="marquee-item">SS 2025 <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Move Beyond <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Limited Edition <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Free Shipping <span class="marquee-dot"></span></div>
+    <div class="marquee-item">New Collection <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Comet Shoes <span class="marquee-dot"></span></div>
+    <div class="marquee-item">SS 2025 <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Move Beyond <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Limited Edition <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Free Shipping <span class="marquee-dot"></span></div>
+  </div>
+</div>
+
+<!-- NEW ARRIVALS -->
+<section class="arrivals" id="arrivals">
+  <div class="section-header">
+    <div><div class="section-eyebrow">Just Landed</div><h2 class="section-title">New Arrivals</h2></div>
+    <a href="#" class="section-link">View All →</a>
+  </div>
+  <div class="products-grid">
+    <div class="product-card">
+      <div class="product-img-wrap">
+        <img class="product-img" src="Comet_Sneakers_Feature_2_ccf5dd736d.png" alt="Comet X1"/>
+        <span class="product-badge">New</span>
+      </div>
+      <div class="product-info"><div><div class="product-name">Comet X1</div><div class="product-sub">Midnight Black</div></div><div class="product-price"><div class="price-new">₹4,999</div></div></div>
+      <div class="product-hover-cta">Add to Bag</div>
+    </div>
+    <div class="product-card">
+      <div class="product-img-wrap">
+        <img class="product-img" src="2.png" alt="Nova Runner"/>
+        <span class="product-badge">Hot</span>
+      </div>
+      <div class="product-info"><div><div class="product-name">Nova Runner</div><div class="product-sub">Electric Blue</div></div><div class="product-price"><div class="price-new">₹5,499</div><div class="price-old">₹6,999</div></div></div>
+      <div class="product-hover-cta">Add to Bag</div>
+    </div>
+    <div class="product-card">
+      <div class="product-img-wrap">
+        <img class="product-img" src="3.png" alt="Orbit Heel"/>
+      </div>
+      <div class="product-info"><div><div class="product-name">Orbit Heel</div><div class="product-sub">Stellar White</div></div><div class="product-price"><div class="price-new">₹6,299</div></div></div>
+      <div class="product-hover-cta">Add to Bag</div>
+    </div>
+    <div class="product-card">
+      <div class="product-img-wrap">
+        <img class="product-img" src="5.png" alt="Drift Low"/>
+        <span class="product-badge">Sale</span>
+      </div>
+      <div class="product-info"><div><div class="product-name">Drift Low</div><div class="product-sub">Burnt Sienna</div></div><div class="product-price"><div class="price-new">₹3,799</div><div class="price-old">₹4,999</div></div></div>
+      <div class="product-hover-cta">Add to Bag</div>
+    </div>
+  </div>
+</section>
+
+<!-- SHOP BY CATEGORY -->
+<section class="categories" id="categories">
+  <div class="section-header">
+    <div><div class="section-eyebrow">Explore</div><h2 class="section-title">Shop by Category</h2></div>
+  </div>
+  <div class="cat-grid">
+    <div class="cat-card">
+      <img class="cat-bg" src="men.png" alt="Sneakers"/>
+      <div class="cat-overlay"></div>
+      <div class="cat-name">Men<span class="cat-cta">Shop Now →</span></div>
+    </div>
+    <div class="cat-card">
+      <img class="cat-bg" src="women.png" alt="Formals"/>
+      <div class="cat-overlay"></div>
+      <div class="cat-name">Women<span class="cat-cta">Shop Now →</span></div>
+    </div>
+    <div class="cat-card">
+      <img class="cat-bg" src="limit2.png" alt="Lifestyle"/>
+      <div class="cat-overlay"></div>
+      <div class="cat-name">Lifestyle<span class="cat-cta">Shop Now →</span></div>
+    </div>
+    <div class="cat-card">
+      <img class="cat-bg" src="limit.png" alt="Limited Edition"/>
+      <div class="cat-overlay"></div>
+      <div class="cat-name">Limited Ed.<span class="cat-cta">Shop Now →</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- CAMPAIGN VIDEO BANNER -->
+<section class="campaign" id="campaign">
+  <video class="campaign-video" autoplay muted loop playsinline>
+    <source src="bn2.mp4" type="video/mp4"/>
+    <source src="SHOES.mp4" type="video/mp4"/>
+  </video>
+  <div class="campaign-overlay"></div>
+  <div class="campaign-content">
+    <div class="campaign-label">FW 2025 Campaign</div>
+    <h2 class="campaign-title">The Speed<br/>of <em>Light</em></h2>
+    <a href="#" class="btn-primary"><span>Discover the Campaign</span></a>
+  </div>
+</section>
+
+<!-- DARK MARQUEE -->
+<div class="marquee-wrap marquee-dark">
+  <div class="marquee-track" style="animation-direction:reverse;animation-duration:28s">
+    <div class="marquee-item">Handcrafted <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Premium Leather <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Sustainably Made <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Born In India <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Worn Worldwide <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Since 2020 <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Handcrafted <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Premium Leather <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Sustainably Made <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Born In India <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Worn Worldwide <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Since 2020 <span class="marquee-dot"></span></div>
+  </div>
+</div>
+
+<!-- MUST HAVE -->
+<section class="featured">
+  <div class="section-header">
+    <div><div class="section-eyebrow">Curated Picks</div><h2 class="section-title">Must Have</h2></div>
+    <a href="#" class="section-link">View All →</a>
+  </div>
+  <div class="featured-grid">
+    <div class="featured-item">
+      <img class="featured-img" src="dark.png" alt="Comet X Pro"/>
+      <div class="featured-overlay"></div>
+      <div class="featured-info">
+        <div class="featured-tag">Bestseller</div>
+        <div class="featured-name">Comet X Pro<br/>JUGNU</div>
+        <div class="featured-price">₹7,499</div>
+        <a href="#" class="btn-primary"><span>Shop Now</span></a>
+      </div>
+    </div>
+    <div class="featured-item">
+      <img class="featured-img" src="sc.png" alt="Nebula Mule"/>
+      <div class="featured-overlay"></div>
+      <div class="featured-info">
+        <div class="featured-tag">Editor's Pick</div>
+        <div class="featured-name">SKRIBBLE</div>
+        <div class="featured-price">₹5,999</div>
+        <a href="#" class="btn-primary"><span>Shop Now</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats" id="about">
+  <div class="stat-item"><div class="stat-num">50K+</div><div class="stat-label">Happy Customers</div></div>
+  <div class="stat-item"><div class="stat-num">120+</div><div class="stat-label">Styles Available</div></div>
+  <div class="stat-item"><div class="stat-num">15+</div><div class="stat-label">Countries Shipped</div></div>
+  <div class="stat-item"><div class="stat-num">4.9★</div><div class="stat-label">Average Rating</div></div>
+</div>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials">
+  <div class="section-header" style="flex-direction:column;align-items:center;gap:.4rem;margin-bottom:3rem">
+    <div class="section-eyebrow">What They Say</div>
+    <h2 class="section-title">Reviews</h2>
+  </div>
+  <div class="testi-grid">
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-text">"These are the most comfortable shoes I've ever worn. The quality is insane for the price. I get compliments everywhere I go."</p>
+      <div class="testi-author">— Priya S., Mumbai</div>
+    </div>
+    <div class="testi-card" style="transition-delay:.1s">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-text">"Comet shoes have completely changed my style game. The X1 fits like a glove and looks like it's worth triple the price."</p>
+      <div class="testi-author">— Arjun K., Delhi</div>
+    </div>
+    <div class="testi-card" style="transition-delay:.2s">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-text">"Delivery was lightning fast, packaging beautiful, and the shoes absolutely stunning. Will definitely be ordering again soon!"</p>
+      <div class="testi-author">— Meera T., Bangalore</div>
+    </div>
+  </div>
+</section>
+
+<!-- NEWSLETTER -->
+<section class="newsletter" id="contact">
+  <div class="newsletter-inner">
+    <h2>Stay in<br/>Orbit</h2>
+    <p>Sign up for exclusive drops, early access & members-only offers.</p>
+    <div class="newsletter-form">
+      <input class="newsletter-input" type="email" placeholder="Enter your email address"/>
+      <button class="newsletter-submit" id="subBtn">Subscribe</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand">
+      <div class="nav-logo">COMET<span style="color:var(--blue)">.</span></div>
+      <p>Shoes crafted for those who move fast, look sharp and leave their mark on the world.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Shop</h4>
+      <ul><li><a href="#">New Arrivals</a></li><li><a href="#">Sneakers</a></li><li><a href="#">Formals</a></li><li><a href="#">Heels</a></li><li><a href="#">Boots</a></li><li><a href="#">Sale</a></li></ul>
+    </div>
+    <div class="footer-col">
+      <h4>Help</h4>
+      <ul><li><a href="#">Size Guide</a></li><li><a href="#">Shipping</a></li><li><a href="#">Returns</a></li><li><a href="#">FAQ</a></li><li><a href="#">Track Order</a></li></ul>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <ul><li><a href="#">About Us</a></li><li><a href="#">Careers</a></li><li><a href="#">Press</a></li><li><a href="#">Sustainability</a></li><li><a href="#">Contact</a></li></ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 Comet Shoes. All rights reserved.</span>
+    <div class="footer-socials"><a href="#">Instagram</a><a href="#">Facebook</a><a href="#">Pinterest</a><a href="#">YouTube</a></div>
+    <span>Privacy · Terms</span>
+  </div>
+</footer>
+
+<script>
+/* LOADER */
+window.addEventListener('load', () => {
+  setTimeout(() => { document.getElementById('loader').classList.add('hidden'); }, 1900);
+});
+
+/* CURSOR */
+const cur = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let mx=0, my=0, rx=0, ry=0;
+document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });
+(function animCursor(){
+  cur.style.left=mx+'px'; cur.style.top=my+'px';
+  rx+=(mx-rx)*.12; ry+=(my-ry)*.12;
+  ring.style.left=rx+'px'; ring.style.top=ry+'px';
+  requestAnimationFrame(animCursor);
+})();
+document.querySelectorAll('a,button').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{ cur.style.width='26px'; cur.style.height='26px'; cur.style.background='var(--white)'; ring.style.width='60px'; ring.style.height='60px'; });
+  el.addEventListener('mouseleave',()=>{ cur.style.width='14px'; cur.style.height='14px'; cur.style.background='var(--blue)'; ring.style.width='40px'; ring.style.height='40px'; });
+});
+
+/* NAV SCROLL */
+const navbar=document.getElementById('navbar');
+window.addEventListener('scroll',()=>{ navbar.classList.toggle('scrolled',window.scrollY>60); },{passive:true});
+
+/* HAMBURGER */
+const ham=document.getElementById('hamburger');
+const mob=document.getElementById('mobileMenu');
+let open=false;
+ham.addEventListener('click',()=>{
+  open=!open; mob.classList.toggle('open',open);
+  const s=ham.querySelectorAll('span');
+  if(open){ s[0].style.transform='rotate(45deg) translate(5px,5px)'; s[1].style.opacity='0'; s[2].style.transform='rotate(-45deg) translate(5px,-5px)'; }
+  else { s.forEach(x=>{x.style.transform='';x.style.opacity='';}); }
+});
+mob.querySelectorAll('.mob-link').forEach(l=>l.addEventListener('click',()=>{
+  open=false; mob.classList.remove('open');
+  ham.querySelectorAll('span').forEach(x=>{x.style.transform='';x.style.opacity='';});
+}));
+
+/* SCROLL ANIMATIONS */
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('visible'); obs.unobserve(e.target); } });
+},{threshold:.12,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.product-card,.cat-card,.featured-item,.stat-item,.testi-card').forEach((el,i)=>{
+  obs.observe(el);
+});
+
+/* HERO PARALLAX */
+window.addEventListener('scroll',()=>{
+  const y=window.scrollY;
+  const v=document.querySelector('.hero-video');
+  if(v) v.style.transform=`translateY(${y*.3}px)`;
+},{passive:true});
+
+/* NEWSLETTER */
+document.getElementById('subBtn').addEventListener('click',()=>{
+  const inp=document.querySelector('.newsletter-input');
+  if(inp.value.includes('@')){ inp.value=''; inp.placeholder='✓ You\'re on the list!'; setTimeout(()=>{inp.placeholder='Enter your email address';},3000); }
+});
+
+/* PRODUCT CARD STAGGER */
+document.querySelectorAll('.product-card').forEach((c,i)=>{ c.style.transitionDelay=i*.08+'s'; });
+document.querySelectorAll('.cat-card').forEach((c,i)=>{ c.style.transitionDelay=i*.1+'s'; });
+document.querySelectorAll('.stat-item').forEach((c,i)=>{ c.style.transitionDelay=i*.1+'s'; });
+</script>
+</body>
+</html>
